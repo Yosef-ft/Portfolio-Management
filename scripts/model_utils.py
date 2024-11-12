@@ -32,8 +32,8 @@ import ta
 
 class ModelUtil:
 
-    @staticmethod
-    def train_test_split(data, test_size, model_name):
+    
+    def train_test_split(self, data, test_size, model_name):
         '''
         This funciont is used to split the data to training and testing based on number of dates
 
@@ -61,3 +61,24 @@ class ModelUtil:
         test_dates = data.index[-test_size:]   
 
         return train, test, train_dates, test_dates, series
+    
+    
+    def train_Arima_model(self,data, test_size=60, model_name = "ARIMA" ,exogenous=False):
+
+        train, test, train_dates, test_dates, series = self.train_test_split(data, test_size, model_name)
+        
+        
+        if model_name == 'ARIMA':
+            model = pm.auto_arima(train['Close'], seasonal=False, trace=True, error_action='ignore',
+                                    suppress_warnings=True, stepwise=True)
+        else:
+            model = pm.auto_arima(train['Close'].values, X= train[['ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband',
+                        'Mband', 'ketler']].values if model_name =="SARIMAX" else None,
+                                    start_P=0,
+                                    start_q = 0,
+                                    max_p=1, max_q=1, max_d=1, start_p=0, 
+                                    seasonal=False if model_name=="ARIMA" else True, m=12, trace=True,
+                                    error_action='ignore', suppress_warnings=True
+                                )
+        
+        return model    
