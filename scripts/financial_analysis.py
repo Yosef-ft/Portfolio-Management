@@ -23,7 +23,7 @@ class PortOptimizer:
         Parameters:
             historical_data (pandas.Datafrme): dataframe containing adjusted close for all tickers
         '''
-        past_df, future_df = historical_data.iloc[:-360], historical_data.iloc[-360:]
+        past_df, future_df = historical_data.iloc[:-252], historical_data.iloc[-252:]
         future_cov = risk_models.sample_cov(future_df)
 
         sample_cov = risk_models.sample_cov(past_df)
@@ -60,7 +60,7 @@ class PortOptimizer:
         Parameters:
             historical_data (pandas.Datafrme): dataframe containing adjusted close for all tickers
         '''       
-        past_df, future_df = historical_data.iloc[:-360], historical_data.iloc[-360:]
+        past_df, future_df = historical_data.iloc[:-252], historical_data.iloc[-252:]
         future_cov = risk_models.sample_cov(future_df) 
         future_rets = expected_returns.mean_historical_return(future_df)
         mean_abs_errors = []
@@ -90,8 +90,7 @@ class PortOptimizer:
             covariance_matrix(pandas.DatFrame), Expected_return(pandas.Series)
         '''
         
-        # expected_return = mean_historical_return(adj_close, frequency=365)
-        expected_return = ema_historical_return(adj_close, frequency=365, span=365)
+        expected_return = ema_historical_return(adj_close, frequency=252, span=252)
             
         covariance_matrix = CovarianceShrinkage(adj_close).ledoit_wolf()
 
