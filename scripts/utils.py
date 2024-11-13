@@ -25,14 +25,17 @@ class Utils:
         # Download tesla historical data
         tsla = yf.Ticker("TSLA")
         tsla_hist = tsla.history(period="1d", start=start, end=end)
+        tsla_hist.drop(['Dividends', 'Stock Splits'], axis=1,inplace=True)
 
         # Download Vanguard Total Bond Market ETF historical data
         bnd = yf.Ticker("BND")
         bnd_hist = bnd.history(period="1d", start=start, end=end)
+        bnd_hist.drop(['Dividends', 'Stock Splits'], axis=1,inplace=True)
 
         # Download S&P500 hisotical Data
         sp500 = yf.Ticker("SPY")
         sp500_hist = sp500.history(period="1d", start=start, end=end)  
+        sp500_hist.drop(['Dividends', 'Stock Splits', 'Capital Gains'], axis=1,inplace=True)
 
         end_time = time.time()
         logger.info(f"Fetching data took {round(end_time - start_time, 2)}s")    
