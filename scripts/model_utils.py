@@ -54,7 +54,7 @@ class ModelUtil:
             train_data, test_data
         '''
 
-        if model_name == 'SARIMAX':
+        if model_name == 'SARIMAX' or 'LSTM':
             series = data[['Close', 'ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband',
                 'Mband', 'ketler']]
             
@@ -175,3 +175,95 @@ class ModelUtil:
         print(f"Mean Absolute Error (MAE): {mae}")
         print(f"Root Mean Squared Error (RMSE): {rmse}")
         print(f"Mean Absolute Percentage Error (MAPE): {mape}%")
+
+
+    def create_sequence(self, data, time_steps =60):
+        X, y = [], []
+        for i in range(len(data) - time_steps):
+            X.append(data[i:(i + time_steps)])
+            y.append(data[i + time_steps])
+        return np.array(X), np.array(y)
+
+    def train_lstm(self, data, seq_length=60, epochs=10, batch_size=32 ,model_name='LSTM'):
+        column = []
+        train, test, train_dates, test_dates, series = self.train_test_split(data=data, test_size= seq_length, model_name= model_name)
+
+        data = train[['Close', 'ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband',
+        'Mband', 'ketler']].values.reshape(-1, 1)
+        
+        data2 = test[['Close', 'ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband',
+        'Mband', 'ketler']].values.reshape(-1, 1)
+        # data = train[['Close', 'ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband', 'Mband', 'ketler']].values
+        # data2 = test[['Close', 'ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband', 'Mband', 'ketler']].values    
+
+        # Create sequences
+        X_train, y_train = self.create_sequence(data, seq_length)
+        X_val, y_val = self.create_sequence(data2, seq_length)
+
+        model = Sequential()
+        model.add(Input(shape=(seq_length, 1)))
+        model.add(LSTM(50, activation='relu', return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(LSTM(50, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(1))
+
+        model.compile(optimizer='adam', loss='mse')
+        # model.compile(
+        #     loss=MeanSquaredError(),
+        #     optimizer=Adam(learning_rate=0.01),
+        # )    
+        model.summary()  
+
+        callback = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+
+        history = model.fit(
+            X_train, y_train, epochs=epochs, batch_size=batch_size,validation_data=(X_val, y_val),
+            callbacks=[callback], verbose=0
+        )
+
+        return model, history        
+    
+    def model_metrics_Lstm(self, model, model_name, data, test_size):
+        train, test, train_dates, test_dates, series = self.train_test_split(data, test_size, model_name)
+
+        forecast = model.predict(test[['Close','ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband', 'Mband', 'ketler']].values)
+        actual_values = test['Close'].values
+        
+        # Mean Absolute Error (MAE)
+        mae = mean_absolute_error(actual_values, forecast)
+
+        # Root Mean Squared Error (RMSE)
+        rmse = np.sqrt(mean_squared_error(actual_values, forecast))
+
+        # Mean Absolute Percentage Error (MAPE)
+        mape = np.mean(np.abs((actual_values - forecast) / actual_values)) * 100
+
+        # Print the results
+        print(f"Mean Absolute Error (MAE): {mae}")
+        print(f"Root Mean Squared Error (RMSE): {rmse}")
+        print(f"Mean Absolute Percentage Error (MAPE): {mape}%")   
+
+    def plot_history(self, history):
+        plt.figure(figsize=(12, 6))
+        plt.plot(history.history['loss'])
+        plt.plot(history.history['val_loss'])
+        plt.title('LSTM Model Loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Validation'], loc='upper left')
+        plt.show()         
+
+    def plot_actual_Vs_forecasted(self, data, test_size, model_name, model):
+        plt.figure(figsize=(15, 8))
+        train, test, train_dates, test_dates, series = self.train_test_split(data, test_size, model_name)
+        plt.plot(test.index, test['Close'], label='Actual', linewidth=2)
+        forecast = model.predict(test[['Close','ATR', 'Bhband', 'Bhband_indicator', 'Bma', 'Dhband', 'Dlband', 'Mband', 'ketler']].values)
+
+        plt.plot(test.index, forecast, label=f' Prediction', linestyle='--')
+
+        plt.title('Model Predictions Comparison')
+        plt.xlabel('Date')
+        plt.ylabel("Price")
+        plt.legend()
+        plt.show()        
