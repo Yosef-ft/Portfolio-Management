@@ -114,7 +114,7 @@ class PortOptimizer:
         return ef
 
         
-    def clean_weights(self, adj_close: pd.DataFrame,max_return: bool = True):
+    def clean_weights(self, adj_close: pd.DataFrame,max_return: bool = True, allow_shorts = False):
         '''
         This function calculates the weights and returns the clean weight for your portfolio
 
@@ -126,8 +126,13 @@ class PortOptimizer:
             clean_weight(OrderedDict)
         '''
 
-        covariance_matrix, expected_return = self.calculate_eReturn_covariance(adj_close)
-        ef = EfficientFrontier(expected_return, covariance_matrix)
+        if allow_shorts:
+            covariance_matrix, expected_return = self.calculate_eReturn_covariance(adj_close)
+            ef = EfficientFrontier(expected_return, covariance_matrix, weight_bounds=(-1,1)) 
+            
+        else:
+            covariance_matrix, expected_return = self.calculate_eReturn_covariance(adj_close)
+            ef = EfficientFrontier(expected_return, covariance_matrix)          
 
         if max_return:
             weights = ef.max_sharpe()
