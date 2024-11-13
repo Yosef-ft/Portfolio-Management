@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 import time
+import ta
 
 from logger import LOGGER
 logger = LOGGER
@@ -24,14 +25,17 @@ class Utils:
         # Download tesla historical data
         tsla = yf.Ticker("TSLA")
         tsla_hist = tsla.history(period="1d", start=start, end=end)
+        tsla_hist.drop(['Dividends', 'Stock Splits'], axis=1,inplace=True)
 
         # Download Vanguard Total Bond Market ETF historical data
         bnd = yf.Ticker("BND")
         bnd_hist = bnd.history(period="1d", start=start, end=end)
+        bnd_hist.drop(['Dividends', 'Stock Splits'], axis=1,inplace=True)
 
         # Download S&P500 hisotical Data
         sp500 = yf.Ticker("SPY")
         sp500_hist = sp500.history(period="1d", start=start, end=end)  
+        sp500_hist.drop(['Dividends', 'Stock Splits', 'Capital Gains'], axis=1,inplace=True)
 
         end_time = time.time()
         logger.info(f"Fetching data took {round(end_time - start_time, 2)}s")    
@@ -69,3 +73,35 @@ class Utils:
         data['std_yearly'] =data['Close'].rolling(window=360).std()  
 
         return data       
+    
+
+    @staticmethod
+    def volatility_indicators(data):
+        '''
+        Funcion to create new features for training model
+
+        Parameter:
+        ---------
+            data(pd.DataFrame): data conatining open, high, low, close and volume
+
+        Return:
+        ------
+            data(pd.DataFrame): dataFrame contining volatility indicators
+        '''
+        high = data['High']
+        low = data['Low']
+        close = data['Close']
+        open = data['Open']
+
+        data['ATR'] = ta.volatility.average_true_range(high, low, close, window=14, fillna=True)
+        data['Bhband'] = ta.volatility.bollinger_hband(close, window=20, window_dev=2, fillna=True)
+        data['Bhband_indicator'] = ta.volatility.bollinger_hband_indicator(close, window=20, window_dev=2, fillna=True)
+        data['Blband'] = ta.volatility.bollinger_lband(close, window=20, window_dev=2, fillna=True)
+        data['Blband_indicator'] = ta.volatility.bollinger_lband_indicator(close, window=20, window_dev=2, fillna=True)
+        data['Bma'] = ta.volatility.bollinger_mavg(close, window=20, fillna=True)
+        data['Dhband'] = ta.volatility.donchian_channel_hband(high, low, close, window=20, offset=0, fillna=True)
+        data['Dlband'] = ta.volatility.donchian_channel_lband(high, low, close, window=20, offset=0, fillna=True)
+        data['Mband'] = ta.volatility.donchian_channel_mband(high, low, close, window=10, offset=0, fillna=True)
+        data['ketler'] = ta.volatility.keltner_channel_hband(high, low, close, window=20, window_atr=10, fillna=True, original_version=True)    
+
+        return data    
