@@ -10,6 +10,9 @@ from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.tsa.stattools import adfuller
 from utils import Utils
 
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
 
 class Plots:
 
@@ -182,3 +185,14 @@ class Plots:
             plt.legend(title='Standard deviation Moving Averages')
                     
         plt.show()          
+
+    @staticmethod
+    def show_image(filepath):
+
+        plt.figure(figsize=(15,10))
+        img = mpimg.imread(filepath)
+
+        # Display the image
+        plt.imshow(img)
+        plt.axis('off')  
+        plt.show()
